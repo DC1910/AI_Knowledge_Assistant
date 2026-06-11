@@ -1,0 +1,209 @@
+{
+  "name": "RAG Ingestion",
+  "nodes": [
+    {
+      "parameters": {
+        "mode": "insert",
+        "pineconeIndex": {
+          "__rl": true,
+          "value": "legal-docs",
+          "mode": "list",
+          "cachedResultName": "legal-docs"
+        },
+        "options": {
+          "pineconeNamespace": "legal-docs"
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.vectorStorePinecone",
+      "typeVersion": 1.3,
+      "position": [
+        240,
+        0
+      ],
+      "id": "19cfa3da-fdda-4f95-bcee-1b17a9772716",
+      "name": "Pinecone Vector Store",
+      "credentials": {
+        "pineconeApi": {
+          "id": "8LO8GCwwHVQMPLQK",
+          "name": "Pinecone account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "modelName": "embed-english-v3.0"
+      },
+      "type": "@n8n/n8n-nodes-langchain.embeddingsCohere",
+      "typeVersion": 1,
+      "position": [
+        128,
+        224
+      ],
+      "id": "5ddb7d54-fd7d-42c6-a3c7-f3aed96132dc",
+      "name": "Embeddings Cohere",
+      "credentials": {
+        "cohereApi": {
+          "id": "hHJcXdhNtYzpXHlr",
+          "name": "Cohere account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chunkSize": 500,
+        "chunkOverlap": 50,
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.textSplitterRecursiveCharacterTextSplitter",
+      "typeVersion": 1,
+      "position": [
+        368,
+        400
+      ],
+      "id": "07cbe28a-62f9-42d7-b9a1-1a4350d5e3d5",
+      "name": "Text Splitter"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"ready\",\n  \"filename\": \"{{ $('Webhook').item.json.body.filename }}\",\n  \"chunks\": 10\n}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.4,
+      "position": [
+        528,
+        0
+      ],
+      "id": "71900791-f6b0-4fbd-bdda-c26b62d4931a",
+      "name": "Respond to Webhook"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "d2df48f8-29c0-4faa-9e26-eba68733f1f2",
+        "responseMode": "responseNode",
+        "options": {
+          "binaryPropertyName": "data"
+        }
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        -80,
+        16
+      ],
+      "id": "7ef73c4c-edca-49c0-8a8f-bf05ea56deaa",
+      "name": "Webhook",
+      "webhookId": "d2df48f8-29c0-4faa-9e26-eba68733f1f2"
+    },
+    {
+      "parameters": {
+        "textSplittingMode": "custom",
+        "options": {
+          "metadata": {
+            "metadataValues": [
+              {
+                "name": "filename",
+                "value": "={{ $('Webhook').first().json.body.filename }}"
+              },
+              {
+                "name": "source",
+                "value": "={{ $('Webhook').first().json.body.filename }}"
+              }
+            ]
+          }
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.documentDefaultDataLoader",
+      "typeVersion": 1.1,
+      "position": [
+        368,
+        192
+      ],
+      "id": "006dd580-3dfa-47ed-a50b-055c8ef81e9a",
+      "name": "Default Data Loader"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Pinecone Vector Store": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Embeddings Cohere": {
+      "ai_embedding": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_embedding",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Text Splitter": {
+      "ai_textSplitter": [
+        [
+          {
+            "node": "Default Data Loader",
+            "type": "ai_textSplitter",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Default Data Loader": {
+      "ai_document": [
+        [
+          {
+            "node": "Pinecone Vector Store",
+            "type": "ai_document",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "0ffe07ba-3729-4640-8d46-9528ea6a9ad8",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "7d359f5e623280deb5125cb72ea2e518acaed7680712b790b13b9cc7cca479fd"
+  },
+  "nodeGroups": [],
+  "id": "I4IwQwDy7Ciim8EX",
+  "tags": []
+}
